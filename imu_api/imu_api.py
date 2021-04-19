@@ -231,6 +231,9 @@ class Result(object):
 
         fetched = self.fetch("current", 0, page_size, columns)
         imu_records = fetched.data["result"]["rows"]
+        # imu_rows = [record["rownum"] for record in imu_records]
+        # logging.info(f"IMu rows returned: {imu_rows}")
+        prev_last_row_number = -1
         while imu_records:
             first_row_number = imu_records[0]["rownum"]
             last_row_number = imu_records[-1]["rownum"]
@@ -243,16 +246,32 @@ class Result(object):
                     self.mod.table,
                 )
             )
-            records += imu_records
+
+            if last_row_number > prev_last_row_number:
+                records += imu_records
+
+            # irns = [record["irn"] for record in imu_records]
+            # logging.info(f"Added irns {irns} to records")
             # IMu seems to persistently return the last result as the last page,
             # so we need to manually track the row numbers and bail when appropriate
             if last_row_number < result_count:
-                fetched = self.fetch("current", 0, page_size, columns)
-                imu_records = fetched.data["result"]["rows"]
+                if last_row_number == prev_last_row_number:
+                    logging.warning(f"IMu is not returning all {result_count} of the found records; using just those that were obtained")
+                    imu_records = None
+                else:
+                    fetched = self.fetch("current", 0, page_size, columns)
+                    imu_records = fetched.data["result"]["rows"]
+                    # imu_rows = [record["rownum"] for record in imu_records]
+                    # logging.info(f"IMu rows returned: {imu_rows}")
             else:
                 imu_records = None
             if result_count_threshold and last_row_number >= result_count_threshold:
                 imu_records = None
+            prev_last_row_number = last_row_number
+
+        # irns = [record["irn"] for record in records]
+        
+        # logging.info(f"Returning irns {irns} from fetch_all")
 
         return records
 
