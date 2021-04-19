@@ -39,7 +39,7 @@ class Session(object):
     # Indent json payloads to improve log readability by mimicking the tabs that the server uses
     message_json_indent = 8
     # The vendor-provided libraries don't have any timeouts, so we'll default to a large wait
-    socket_timeout = 60
+    socket_timeout = 600
     response_success_status = "ok"
     context = None
 
