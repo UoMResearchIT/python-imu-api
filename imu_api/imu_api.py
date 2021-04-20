@@ -218,6 +218,61 @@ class Result(object):
         }
         return self._send(message)
 
+
+    def fetch_all2(self, columns, page_size=100, result_count_threshold=None):
+        result_count = self.data["result"]
+        if result_count_threshold:
+            logger.info(
+                "fetching %s of %s records..." % (result_count_threshold, result_count)
+            )
+        else:
+            logger.info("fetching %s records..." % result_count)
+
+        records = []
+
+        total_fetched = 0
+        offset = 0
+        flag = "start"
+
+        while total_fetched < result_count and (result_count_threshold is None or total_fetched < result_count_threshold):
+            fetched = self.fetch(flag, offset, page_size, columns)
+            flag = "current"
+            offset = 0 # The IMu documentation
+                       # (http://imu.melbourne.axiell.com/doc/api/perl/accessing/information.html)
+                       # says that flag="current",offset=0 should
+                       # return the last record of the previously
+                       # returned set, but this doesn't appear to be
+                       # the case.  Hence, we set offset=0 otherwise
+                       # we would miss results. This might depend on
+                       # the version of IMu, because the original
+                       # fetch_all method below has a comment saying
+                       # that with offset=0, the last record was being
+                       # returned continually, which would suggest
+                       # that when they were running it, it was
+                       # behaving as documented.
+            imu_records = fetched.data["result"]["rows"]
+
+            logger.info(
+                "fetched %s-%s of %s %s"
+                % (
+                    imu_records[0]["rownum"],
+                    imu_records[-1]["rownum"],
+                    result_count_threshold or result_count,
+                    self.mod.table,
+                )
+            )
+
+            # irns = [record["irn"] for record in imu_records]
+            # logging.info(f"Fetched irns = {irns}")
+
+            records += imu_records
+            total_fetched += len(imu_records)
+
+        if total_fetched > result_count:
+            logging.warning("Fetched more than the expected number of records")
+
+        return records
+
     def fetch_all(self, columns, page_size=100, result_count_threshold=None):
         result_count = self.data["result"]
         if result_count_threshold:
