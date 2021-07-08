@@ -219,7 +219,7 @@ class Result(object):
         return self._send(message)
 
 
-    def fetch_all2(self, columns, page_size=100, result_count_threshold=None):
+    def fetch_all2(self, columns, page_size=100, result_count_threshold=None, record_processor=None):
         result_count = self.data["result"]
         if result_count_threshold:
             logger.info(
@@ -261,6 +261,10 @@ class Result(object):
                     self.mod.table,
                 )
             )
+
+            if record_processor is not None:
+                logger.info("Processing records")
+                record_processor(imu_records)
 
             # irns = [record["irn"] for record in imu_records]
             # logging.info(f"Fetched irns = {irns}")
